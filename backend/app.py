@@ -3,6 +3,8 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from models import db, User, AITask, GeneratedResult, SystemConfig
 from config import config
+from services.websocket_service import WebSocketService
+from celery_app import make_celery
 import os
 
 def create_app(config_name='default'):
@@ -12,6 +14,12 @@ def create_app(config_name='default'):
     # 初始化扩展
     db.init_app(app)
     CORS(app)
+    
+    # 初始化WebSocket
+    WebSocketService.init_app(app)
+    
+    # 初始化Celery
+    celery = make_celery(app)
     
     # 数据库迁移
     migrate = Migrate(app, db)
@@ -25,10 +33,12 @@ def create_app(config_name='default'):
     from routes.auth import auth_bp
     from routes.api import api_bp
     from routes.admin import admin_bp
+    from routes.payment import payment_bp
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(payment_bp, url_prefix='/payment')
     
     # 基础路由
     @app.route('/')
@@ -44,31 +54,33 @@ def create_app(config_name='default'):
     
     return app
 
+def init_system_config():
+    """初始化系统配置"""
+    with app.app_context():
+        configs = [
+            ('new_user_bonus_points', '50', '新用户注册赠送积分'),
+            ('base_generation_cost', '10', '单张图片生成基础积分成本'),
+            ('cny_to_points_rate', '30', '1元人民币对应积分数'),
+            ('analyze_cost', '1', '图片分析消耗积分')
+        ]
+        
+        for key, value, desc in configs:
+            existing = SystemConfig.query.filter_by(config_key=key).first()
+            if not existing:
+                config_item = SystemConfig(
+                    config_key=key,
+                    config_value=value,
+                    description=desc
+                )
+                db.session.add(config_item)
+        
+        db.session.commit()
+
 if __name__ == '__main__':
     app = create_app('development')
     with app.app_context():
         db.create_all()
-        # 初始化系统配置
         init_system_config()
-    app.run(debug=True, host='0.0.0.0', port=5000)
-
-def init_system_config():
-    """初始化系统配置"""
-    configs = [
-        ('new_user_bonus_points', '50', '新用户注册赠送积分'),
-        ('base_generation_cost', '10', '单张图片生成基础积分成本'),
-        ('cny_to_points_rate', '30', '1元人民币对应积分数'),
-        ('analyze_cost', '1', '图片分析消耗积分')
-    ]
     
-    for key, value, desc in configs:
-        existing = SystemConfig.query.filter_by(config_key=key).first()
-        if not existing:
-            config_item = SystemConfig(
-                config_key=key,
-                config_value=value,
-                description=desc
-            )
-            db.session.add(config_item)
-    
-    db.session.commit()
+    # 使用socketio.run而不是app.run
+    WebSocketService.socketio.run(app, debug=True, host='0.0.0.0', port=5000)
