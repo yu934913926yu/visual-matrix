@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 import jwt
 from models import User
 
@@ -18,7 +18,8 @@ def token_required(f):
                 token = token[7:]
             
             # 解码token
-            payload = jwt.decode(token, 'your-secret-key', algorithms=['HS256'])
+            secret_key = current_app.config.get('JWT_SECRET_KEY', current_app.config['SECRET_KEY'])
+            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
             current_user = User.query.get(payload['user_id'])
             
             if not current_user:
@@ -46,7 +47,8 @@ def admin_required(f):
             if token.startswith('Bearer '):
                 token = token[7:]
             
-            payload = jwt.decode(token, 'your-secret-key', algorithms=['HS256'])
+            secret_key = current_app.config.get('JWT_SECRET_KEY', current_app.config['SECRET_KEY'])
+            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
             current_user = User.query.get(payload['user_id'])
             
             if not current_user:

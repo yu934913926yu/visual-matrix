@@ -1090,3 +1090,104 @@ export default {
   margin-top: 20px;
 }
 </style>
+
+<!-- 图片预览和创意选择 -->
+      <el-card v-if="uploadedImage && !analysisResult" class="creative-guide-card">
+        <div class="image-preview">
+          <img :src="uploadedImage" alt="上传的图片" />
+          <el-button @click="resetUpload" type="text" class="reset-btn">
+            <el-icon><refresh /></el-icon>
+            重新上传
+          </el-button>
+        </div>
+        
+        <div class="generation-options">
+          <h3>选择生成方式</h3>
+          <div class="option-buttons">
+            <el-button
+              type="primary"
+              size="large"
+              @click="startQuickGeneration"
+              :loading="analyzing"
+            >
+              <el-icon><magic-stick /></el-icon>
+              一键智能生成
+            </el-button>
+            <el-button
+              size="large"
+              @click="showCustomOptions = !showCustomOptions"
+            >
+              <el-icon><setting /></el-icon>
+              按我的需求生成
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 自定义需求面板 - 改进为更清晰的左右分栏布局 -->
+        <transition name="el-fade-in">
+          <div v-if="showCustomOptions" class="custom-panel">
+            <h4>自定义生成需求</h4>
+            <div class="custom-content">
+              <div class="custom-left">
+                <h5>描述您的具体想法</h5>
+                <el-input
+                  v-model="customPrompt"
+                  type="textarea"
+                  :rows="6"
+                  placeholder="请在此输入您的具体想法、场景或关键词...&#10;&#10;例如：&#10;- 背景要有沙滩和海浪&#10;- 产品放在木质桌面上&#10;- 需要温暖的夕阳光线"
+                />
+                <el-tag type="info" size="small" class="tip-tag">
+                  <el-icon><info-filled /></el-icon>
+                  提示：描述越详细，生成效果越精准
+                </el-tag>
+              </div>
+              
+              <div class="custom-divider"></div>
+              
+              <div class="custom-right">
+                <h5>官方风格库</h5>
+                <el-scrollbar height="300px">
+                  <div class="style-grid" v-loading="loadingStyles">
+                    <div
+                      v-for="style in styleTemplates"
+                      :key="style.id"
+                      class="style-card"
+                      :class="{ active: selectedStyleId === style.id }"
+                      @click="toggleStyle(style.id)"
+                    >
+                      <div class="style-image">
+                        <img :src="style.thumbnail_url" :alt="style.name" />
+                        <div class="style-overlay">
+                          <el-icon v-if="selectedStyleId === style.id" class="check-icon">
+                            <check />
+                          </el-icon>
+                        </div>
+                      </div>
+                      <div class="style-info">
+                        <span class="style-name">{{ style.name }}</span>
+                        <span class="style-desc">{{ style.description }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </el-scrollbar>
+                <el-tag type="success" size="small" class="tip-tag">
+                  <el-icon><magic-stick /></el-icon>
+                  选择风格可获得专业级效果
+                </el-tag>
+              </div>
+            </div>
+            
+            <div class="custom-footer">
+              <el-button @click="showCustomOptions = false">取消</el-button>
+              <el-button
+                type="primary"
+                @click="startCustomGeneration"
+                :loading="analyzing"
+                :disabled="!customPrompt && !selectedStyleId"
+              >
+                生成创意脚本
+              </el-button>
+            </div>
+          </div>
+        </transition>
+      </el-card>

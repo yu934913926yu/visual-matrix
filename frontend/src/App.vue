@@ -16,6 +16,8 @@
             <el-menu-item index="/">首页</el-menu-item>
             <el-menu-item index="/dashboard" v-if="isLoggedIn">工作台</el-menu-item>
             <el-menu-item index="/gallery" v-if="isLoggedIn">我的作品</el-menu-item>
+           <el-menu-item index="/recharge" v-if="isLoggedIn">充值中心</el-menu-item>
+           <el-menu-item index="/admin" v-if="isLoggedIn && userRole === 'admin'">管理后台</el-menu-item>
           </el-menu>
           <div class="header-right">
             <template v-if="isLoggedIn">
